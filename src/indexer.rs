@@ -9,8 +9,10 @@ impl Indexer {
 
     pub fn run(&mut self, rx: Receiver<Vec<String>>) {
         loop {
-            let content = rx.recv().unwrap();
-            //println!("{}", content);
+            let content = rx.try_recv();
+            if content.is_ok() {
+            //    println!("{:?}", content.unwrap());
+            }
         }
     }
 }

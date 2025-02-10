@@ -4,7 +4,7 @@ use std::{
 };
 pub mod crawler;
 pub mod indexer;
-pub mod parser;
+//pub mod parser;
 fn main() {
     println!("Hello, world!");
     //crate::parser::Parser::new(String::from("example.txt"));
@@ -22,6 +22,6 @@ fn main() {
         indexer.run(rx);
     });
 
-    crawler_handle.join();
-    indexer_handle.join();
+    let _ = crawler_handle.join();
+    let _ = indexer_handle.join();
 }
