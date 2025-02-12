@@ -3,6 +3,7 @@ use std::{
     sync::mpsc::Sender, thread::sleep, time::Duration,
 };
 
+use log::info;
 use regex::Regex;
 use reqwest::blocking::{Client, Response};
 use scraper::Html;
@@ -31,7 +32,7 @@ impl Crawler {
         }
     }
 
-    pub fn run(&mut self, tx: Sender<Vec<String>>, api_key: &str) {
+    pub fn run(&mut self, tx: Sender<Vec<String>>) {
         loop {
             let request_url = self.url_queue.pop_front().unwrap();
             let request = self
@@ -42,7 +43,7 @@ impl Crawler {
                 .unwrap();
             if let Ok(res) = Client::execute(&self.http_client, request) {
                 if res.status().is_success() {
-                    println!("Valid");
+                    info!("Request to {} succeeded", request_url);
                     let body = String::from_utf8(res.bytes().unwrap().to_vec()).unwrap();
                     let content = Self::parse(&body);
                     content
@@ -58,11 +59,13 @@ impl Crawler {
                         .for_each(|unvisited_url| self.url_queue.push_back(unvisited_url));
                     let _ = tx.send(content.tokens);
                 } else if !res.status().is_client_error() {
+                    info!("Server error for request {}", request_url);
                     self.url_queue.push_back(request_url);
                 } else {
-                    println!("Invalid");
+                    info!("Client error for request {}", request_url);
                 }
             } else {
+                info!("Request to {} timed out", request_url);
                 self.url_queue.push_back(request_url);
             };
             
