@@ -1,6 +1,8 @@
 use std::{
     collections::{HashSet, VecDeque},
-    sync::mpsc::Sender, thread::sleep, time::Duration,
+    sync::mpsc::Sender,
+    thread::sleep,
+    time::Duration,
 };
 
 use log::info;
@@ -32,13 +34,14 @@ impl Crawler {
         }
     }
 
-    pub fn run(&mut self, tx: Sender<Vec<String>>) {
+    pub fn run(&mut self, tx: Sender<(Vec<String>, u32)>) {
+        let mut doc_id: u32 = 0;
         loop {
             let request_url = self.url_queue.pop_front().unwrap();
             let request = self
                 .http_client
                 .get(&request_url)
-               // .bearer_auth(api_key)
+                // .bearer_auth(api_key)
                 .build()
                 .unwrap();
             if let Ok(res) = Client::execute(&self.http_client, request) {
@@ -57,7 +60,8 @@ impl Crawler {
                         })
                         .filter(|url| !self.visited_urls.contains(url))
                         .for_each(|unvisited_url| self.url_queue.push_back(unvisited_url));
-                    let _ = tx.send(content.tokens);
+                    let _ = tx.send((content.tokens, doc_id));
+                    doc_id += 1;
                 } else if !res.status().is_client_error() {
                     info!("Server error for request {}", request_url);
                     self.url_queue.push_back(request_url);
@@ -68,7 +72,7 @@ impl Crawler {
                 info!("Request to {} timed out", request_url);
                 self.url_queue.push_back(request_url);
             };
-            
+
             sleep(Duration::from_secs(5));
         }
     }
@@ -133,6 +137,7 @@ impl Crawler {
     fn clean_word(word: &str) -> String {
         word.trim_start_matches(|letter: char| !letter.is_alphanumeric())
             .trim_end_matches(|letter: char| !letter.is_alphanumeric())
+            .to_ascii_lowercase()
             .to_string()
     }
 }
