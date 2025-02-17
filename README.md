@@ -23,3 +23,9 @@ We can solve most of our problems by using a combination of these two data struc
 
 I decided to double the number of entries after each linked list node to maximise cache hits so realistically I've now got a Vec but worse...
 Might need to do some benchmark testing but I think I can just switch the unrolled linked list with a Vec or I can try have a constant small capacity on each node. 
+
+Now we have a simple and relatively efficient in memory inverted index. However, since we're crawling a pretty large dataset chances are we'll run out of RAM so the index will need to be moved to disk. We'll explore moving the term dictionary to disk in the future but for now we'll start with the posting lists which are the main source of memory use. 
+
+First I'd like to point out how I plan on using the inverted index when implementing search. Since we want to continue crawling while also allowing for searches the inverted index cannot be entirely static. Therefore, we will have an in memory representation that will get merged with the on disk representation when memory usage exceeds some set target. When it comes to searching we will search both the in memory and on disk indices and combine them to get our result. 
+
+Now to get started on building the on disk representation we want to sort by terms (this is in preparation for when we need to also move the term dictionary into disk) and then place the doc_id and freq into the file for each term. Additionally, we will store a Vector sorted by terms that will also contain the starting file offset where the posting list starts. Additionally, since everything is sorted we can perform an efficient in memory binary search when looking for a term and there is no need to store the size of the posting lists since we can just subtract from the start of the next term.
